@@ -1,0 +1,11 @@
+# Mengabaikan dataset yang terlalu besar
+dataset/1000000-bandcamp-sales.csv
+
+# Mengabaikan file cache Python
+__pycache__/
+*.py[cod]
+
+# Mengabaikan virtual environment (jika Anda membuatnya)
+venv/
+env/
+.env

@@ -9,3 +9,7 @@ __pycache__/
 venv/
 env/
 .env
+
+# Artefak hasil generate (dibuat ulang oleh main_pipeline.ipynb)
+database/*.db
+etl/

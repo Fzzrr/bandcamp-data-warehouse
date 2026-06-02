@@ -1,16 +1,122 @@
 Negara,Jumlah_Pembelian_Fisik,Nilai_Transaksi_Fisik,Avg_Spend_Per_Order
-United States,150,3503.05,23.35
-United Kingdom,46,728.32,15.83
-Australia,14,280.93,20.07
-France,17,258.24,15.19
-Canada,15,251.57,16.77
-Italy,6,182.96,30.49
-Germany,9,153.07,17.01
-Spain,3,125.0,41.67
-Netherlands,5,120.28,24.06
-Sweden,4,82.83,20.71
-Estonia,3,70.83,23.61
-Norway,3,56.65,18.88
-Japan,1,24.02,24.02
-Ireland,1,20.0,20.0
-Iceland,1,9.09,9.09
+United States,103111,2022041.34,19.61
+United Kingdom,40455,741608.47,18.33
+Germany,18092,362452.13,20.03
+Australia,11857,243687.54,20.55
+France,10475,204721.98,19.54
+Canada,7876,146374.91,18.58
+Netherlands,3924,80092.61,20.41
+Spain,3703,67377.36,18.2
+Japan,3765,67102.84,17.82
+Italy,3404,66450.59,19.52
+Belgium,3265,64237.81,19.67
+Sweden,2766,58008.85,20.97
+Switzerland,2600,54927.7,21.13
+Ireland,2306,45198.34,19.6
+Greece,1995,43767.9,21.94
+Norway,1547,32870.21,21.25
+Denmark,1489,30986.97,20.81
+Poland,1500,28115.44,18.74
+Finland,1401,27520.52,19.64
+Austria,1306,26590.73,20.36
+New Zealand,1074,21857.23,20.35
+Russian Federation,750,14944.0,19.93
+Portugal,765,14218.08,18.59
+Israel,474,14130.4,29.81
+Czech Republic,525,9672.49,18.42
+Mexico,440,8061.01,18.32
+Lithuania,282,5810.48,20.6
+Hungary,268,5405.77,20.17
+Chile,206,4175.76,20.27
+Slovakia,235,4020.0,17.11
+Luxembourg,181,3723.14,20.57
+Singapore,216,3685.02,17.06
+C2,217,3467.55,15.98
+Brazil,182,3271.94,17.98
+Hong Kong,162,3245.42,20.03
+Estonia,172,3227.74,18.77
+Romania,156,3137.19,20.11
+Republic of Korea,140,3033.26,21.67
+Croatia,158,2949.47,18.67
+Thailand,148,2851.52,19.27
+Slovenia,135,2424.36,17.96
+Iceland,93,1904.43,20.48
+Malaysia,118,1847.23,15.65
+Ukraine,88,1810.98,20.58
+Taiwan,98,1691.85,17.26
+Bulgaria,71,1527.34,21.51
+Serbia,75,1450.49,19.34
+Latvia,83,1372.92,16.54
+Cyprus,44,1319.06,29.98
+United Arab Emirates,47,1206.62,25.67
+Malta,54,1130.52,20.94
+Colombia,50,1020.24,20.4
+South Africa,54,938.05,17.37
+Costa Rica,48,857.73,17.87
+Philippines,51,805.88,15.8
+Peru,43,687.39,15.99
+Indonesia,42,679.56,16.18
+Monaco,29,648.74,22.37
+Turkey,21,614.04,29.24
+Ecuador,33,593.02,17.97
+Belarus,31,568.49,18.34
+Georgia,29,464.9,16.03
+Qatar,20,447.78,22.39
+India,21,423.69,20.18
+China,19,421.04,22.16
+Kazakhstan,18,419.95,23.33
+Argentina,23,374.27,16.27
+Honduras,19,294.89,15.52
+Saudi Arabia,15,294.36,19.62
+Dominican Republic,10,287.22,28.72
+Bahrain,16,282.92,17.68
+Panama,12,237.56,19.8
+Kuwait,15,233.1,15.54
+Guatemala,8,231.59,28.95
+Reunion,9,218.84,24.32
+Gibraltar,5,188.74,37.75
+Faroe Islands,10,187.54,18.75
+Venezuela,6,170.09,28.35
+Uruguay,11,161.82,14.71
+Brunei Darussalam,7,150.39,21.48
+Puerto Rico,9,116.38,12.93
+Macedonia,6,106.12,17.69
+French Polynesia,1,100.33,100.33
+Moldova,3,97.92,32.64
+El Salvador,7,91.68,13.1
+Tunisia,4,81.24,20.31
+Senegal,3,81.12,27.04
+Morocco,5,80.82,16.16
+Algeria,4,80.0,20.0
+Bermuda,4,77.46,19.36
+Egypt,4,70.75,17.69
+Bosnia and Herzegovina,5,67.81,13.56
+Lebanon,3,67.59,22.53
+Andorra,6,65.67,10.95
+Cambodia,4,60.51,15.13
+Viet Nam,3,56.15,18.72
+Kenya,2,55.58,27.79
+Paraguay,4,54.81,13.7
+Jordan,2,52.86,26.43
+Fiji,3,52.72,17.57
+ME,2,50.0,25.0
+Jersey,2,39.23,19.62
+Cayman Islands,1,34.89,34.89
+Oman,2,34.08,17.04
+Bahamas,1,25.0,25.0
+Anguilla,1,22.0,22.0
+XK,1,20.0,20.0
+Macao,1,20.0,20.0
+New Caledonia,1,19.92,19.92
+Guernsey,1,19.37,19.37
+Armenia,1,18.8,18.8
+Mauritius,1,17.61,17.61
+Azerbaijan,1,13.96,13.96
+Guadeloupe,1,13.0,13.0
+Jamaica,1,12.99,12.99
+Sri Lanka,1,12.89,12.89
+Trinidad and Tobago,1,12.82,12.82
+Nicaragua,1,11.67,11.67
+CW,1,6.43,6.43
+Bolivia,1,4.72,4.72
+Isle of Man,2,4.4,2.2

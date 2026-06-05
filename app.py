@@ -1,13 +1,3 @@
-"""
-🎸 Bandcamp Sales — Data Warehouse Dashboard
-=============================================
-Dashboard visualisasi interaktif yang membaca langsung dari Data Warehouse
-SQLite (Star Schema) hasil main_pipeline.ipynb.
-
-Menjalankan:
-    streamlit run app.py
-"""
-
 import os
 import sqlite3
 
@@ -18,9 +8,6 @@ import streamlit as st
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "database", "bandcamp_dw.db")
 
-# ----------------------------------------------------------------------------
-# Konfigurasi halaman + tema warna
-# ----------------------------------------------------------------------------
 st.set_page_config(page_title="Bandcamp DWH Dashboard", page_icon="🎸", layout="wide")
 
 TEAL = "#11999E"
@@ -84,10 +71,6 @@ CSS = """
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
-
-# ----------------------------------------------------------------------------
-# Koneksi & helper query (di-cache)
-# ----------------------------------------------------------------------------
 @st.cache_resource
 def get_conn():
     if not os.path.exists(DB_PATH):
@@ -142,10 +125,6 @@ def style_fig(fig, h=380):
     )
     return fig
 
-
-# ----------------------------------------------------------------------------
-# Sidebar — Filter
-# ----------------------------------------------------------------------------
 st.sidebar.markdown("### Filter Data")
 
 all_countries = run("SELECT Negara FROM Dim_Lokasi WHERE Lokasi_SK<>-1 ORDER BY Negara")["Negara"].tolist()
@@ -198,9 +177,6 @@ st.sidebar.caption(
 WHERE, P = build_where(sel_countries, sel_types, date_lo, date_hi)
 
 
-# ----------------------------------------------------------------------------
-# Hero + KPI
-# ----------------------------------------------------------------------------
 st.markdown(
     f"""<div class="hero">
         <h1>Bandcamp Sales — Data Warehouse Dashboard</h1>
@@ -232,9 +208,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ----------------------------------------------------------------------------
-# Pre-compute beberapa angka untuk insight callout (dinamis)
-# ----------------------------------------------------------------------------
+
 mix = run(
     f"SELECT i.Tipe_Item, SUM(f.Gross_Rev) Revenue, COUNT(*) Tx {BASE}{WHERE} "
     f"AND i.Item_SK <> -1 GROUP BY i.Tipe_Item ORDER BY Revenue DESC", P,
@@ -365,7 +339,7 @@ with tab2:
         fig.update_traces(hovertemplate="<b>%{y}</b><br>Revenue: $%{x:,.0f}<extra></extra>")
         st.plotly_chart(style_fig(fig, 430).update_layout(coloraxis_showscale=False), use_container_width=True)
     with col2:
-        st.markdown("##### 🎤 15 Artis dengan Pendapatan Bersih Tertinggi")
+        st.markdown("##### 15 Artis dengan Pendapatan Bersih Tertinggi")
         artis = run(
             f"SELECT a.Nama_Artis, SUM(f.Artist_Revenue) Pendapatan {BASE} "
             f"JOIN Dim_Artis a ON f.Artis_SK=a.Artis_SK {WHERE} AND a.Artis_SK <> -1 "
@@ -470,7 +444,7 @@ with tab5:
           .pivot_table(index="Negara", columns="Tipe_Item", values="Revenue", fill_value=0)
           .round(0).reindex(top10))
     pt.index.name = "Negara"
-    pt.columns.name = None  # buang label 'Tipe_Item' di pojok tabel
+    pt.columns.name = None 
     st.dataframe(pt.style.format("${:,.0f}").background_gradient(cmap="GnBu", axis=None),
                  use_container_width=True)
 

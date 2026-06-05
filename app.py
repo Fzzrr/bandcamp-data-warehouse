@@ -146,16 +146,48 @@ def style_fig(fig, h=380):
 # ----------------------------------------------------------------------------
 # Sidebar — Filter
 # ----------------------------------------------------------------------------
-st.sidebar.markdown("### 🎛️ Filter Data")
+st.sidebar.markdown("### Filter Data")
 
 all_countries = run("SELECT Negara FROM Dim_Lokasi WHERE Lokasi_SK<>-1 ORDER BY Negara")["Negara"].tolist()
 all_types = run("SELECT DISTINCT Tipe_Item FROM Dim_Item WHERE Item_SK<>-1 ORDER BY Tipe_Item")["Tipe_Item"].tolist()
-all_dates = run("SELECT Tanggal FROM Dim_Waktu WHERE Time_ID<>-1 ORDER BY Tanggal")["Tanggal"].tolist()
-lo, hi = all_dates[0], all_dates[-1]
+all_dates = run(
+    "SELECT Tanggal FROM Dim_Waktu WHERE Time_ID<>-1 ORDER BY Tanggal"
+)["Tanggal"].tolist()
 
-sel_countries = st.sidebar.multiselect("Negara", all_countries, default=[], help="Kosong = semua negara")
-sel_types = st.sidebar.multiselect("Tipe Produk", all_types, default=[], help="Kosong = semua tipe")
-date_lo, date_hi = st.sidebar.select_slider("Rentang Tanggal", options=all_dates, value=(lo, hi))
+sel_countries = st.sidebar.multiselect(
+    "Negara",
+    all_countries,
+    default=[],
+    help="Kosong = semua negara"
+)
+
+sel_types = st.sidebar.multiselect(
+    "Tipe Produk",
+    all_types,
+    default=[],
+    help="Kosong = semua tipe"
+)
+
+if len(all_dates) > 1:
+    lo, hi = all_dates[0], all_dates[-1]
+
+    date_lo, date_hi = st.sidebar.select_slider(
+        "Rentang Tanggal",
+        options=all_dates,
+        value=(lo, hi)
+    )
+
+elif len(all_dates) == 1:
+    lo = hi = all_dates[0]
+    date_lo = date_hi = all_dates[0]
+
+    st.sidebar.info(
+        f"Rentang tanggal hanya tersedia pada {all_dates[0]}"
+    )
+
+else:
+    st.error("Tidak ada data tanggal pada Dim_Waktu")
+    st.stop()
 
 st.sidebar.markdown("---")
 st.sidebar.caption(
@@ -171,7 +203,7 @@ WHERE, P = build_where(sel_countries, sel_types, date_lo, date_hi)
 # ----------------------------------------------------------------------------
 st.markdown(
     f"""<div class="hero">
-        <h1>🎸 Bandcamp Sales — Data Warehouse Dashboard</h1>
+        <h1>Bandcamp Sales — Data Warehouse Dashboard</h1>
         <p>Star Schema · 1 tabel fakta + 5 dimensi · rentang data {lo} → {hi}</p>
     </div>""",
     unsafe_allow_html=True,
@@ -211,41 +243,62 @@ mix["pct_rev"] = 100 * mix["Revenue"] / mix["Revenue"].sum()
 mix["pct_tx"] = 100 * mix["Tx"] / mix["Tx"].sum()
 phys = mix[mix["Tipe_Item"] == "Physical / Merch"]
 
+phys_pct_rev = (
+    phys["pct_rev"].iloc[0]
+    if not phys.empty
+    else 0
+)
+
+phys_pct_tx = (
+    phys["pct_tx"].iloc[0]
+    if not phys.empty
+    else 0
+)
+
 fri = run(
     f"SELECT CASE WHEN w.Hari='Friday' THEN 'Jumat' ELSE 'Lain' END g, "
     f"SUM(f.Gross_Rev)/COUNT(DISTINCT w.Tanggal) rph {BASE}{WHERE} GROUP BY g", P,
 ).set_index("g")["rph"]
 fri_mult = (fri.get("Jumat", 0) / fri.get("Lain", 1)) if fri.get("Lain", 0) else 0
 
-geo_top = run(
-    f"SELECT l.Negara, SUM(f.Gross_Rev) r {BASE}{WHERE} GROUP BY l.Negara ORDER BY r DESC LIMIT 1", P,
-).iloc[0]
-geo_share = 100 * geo_top["r"] / kpi["gross"]
+geo_df = run(
+    f"SELECT l.Negara, SUM(f.Gross_Rev) r {BASE}{WHERE} "
+    f"GROUP BY l.Negara ORDER BY r DESC LIMIT 1",
+    P,
+)
+
+if geo_df.empty:
+    geo_top = {"Negara": "-", "r": 0}
+    geo_share = 0
+else:
+    geo_top = geo_df.iloc[0]
+    geo_share = (
+        100 * geo_top["r"] / kpi["gross"]
+        if kpi["gross"]
+        else 0
+    )
 
 st.markdown("---")
 
-# ----------------------------------------------------------------------------
-# TABS
-# ----------------------------------------------------------------------------
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["📊 Ringkasan", "🌍 Geografi & Produk", "⏱️ Waktu & Perilaku", "👥 Segmen Pelanggan", "🗂️ Data"])
 
-# ============================== TAB 1: RINGKASAN ============================
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["Ringkasan", "Geografi & Produk", "Waktu & Perilaku", "Segmen Pelanggan", "Data"])
+
 with tab1:
     st.markdown(
-        f"""<div class="insight">💡 <b>{phys['pct_rev'].iloc[0]:.0f}%</b> revenue datang dari
+        f"""<div class="insight"><b>{phys['pct_rev'].iloc[0]:.0f}%</b> revenue datang dari
         <b>produk fisik / merch</b>, padahal hanya <b>{phys['pct_tx'].iloc[0]:.0f}%</b> dari jumlah transaksi —
         merch punya nilai order ~2,7× lebih tinggi dari album digital.</div>
-        <div class="insight">📅 Hari <b>Jumat</b> menghasilkan rata-rata <b>{fri_mult:.1f}×</b> revenue/hari
+        <div class="insight">Hari <b>Jumat</b> menghasilkan rata-rata <b>{fri_mult:.1f}×</b> revenue/hari
         dibanding hari lain — efek <b>Bandcamp Friday</b> (biaya platform 0%).</div>
-        <div class="insight">🌍 <b>{geo_top['Negara']}</b> menyumbang <b>{geo_share:.0f}%</b> dari seluruh revenue —
+        <div class="insight"><b>{geo_top['Negara']}</b> menyumbang <b>{geo_share:.0f}%</b> dari seluruh revenue —
         pasar sangat terkonsentrasi.</div>""",
         unsafe_allow_html=True,
     )
 
     col1, col2 = st.columns([2, 1])
     with col1:
-        st.markdown("##### 📈 Tren Revenue Harian — *Friday Effect*")
+        st.markdown("##### Tren Revenue Harian — *Friday Effect*")
         daily = run(
             f"SELECT w.Tanggal, w.Hari, SUM(f.Gross_Rev) Revenue, COUNT(*) Transaksi "
             f"{BASE}{WHERE} GROUP BY w.Tanggal ORDER BY w.Tanggal", P,
@@ -258,15 +311,15 @@ with tab1:
         )
         fig.update_traces(hovertemplate="<b>%{x}</b><br>Revenue: $%{y:,.0f}<br>"
                           "Transaksi: %{customdata[0]:,}<extra>%{fullData.name}</extra>")
-        st.plotly_chart(style_fig(fig), width="stretch")
+        st.plotly_chart(style_fig(fig), use_container_width=True)
     with col2:
-        st.markdown("##### 🛍️ Komposisi Revenue per Tipe Produk")
+        st.markdown("##### Komposisi Revenue per Tipe Produk")
         fig = px.pie(mix, names="Tipe_Item", values="Revenue", hole=0.58, color_discrete_sequence=SEQ)
         fig.update_traces(textposition="inside", textinfo="percent+label", sort=False,
                           hovertemplate="%{label}<br>Revenue: $%{value:,.0f}<extra></extra>")
-        st.plotly_chart(style_fig(fig).update_layout(showlegend=False), width="stretch")
+        st.plotly_chart(style_fig(fig).update_layout(showlegend=False), use_container_width=True)
 
-    st.markdown("##### 💵 Distribusi Nilai Order — perilaku bayar sesukanya")
+    st.markdown("##### Distribusi Nilai Order — perilaku bayar sesukanya")
     dist = run(
         f"""SELECT CASE
             WHEN f.Gross_Rev<2 THEN '< $2' WHEN f.Gross_Rev<5 THEN '$2–5'
@@ -285,15 +338,14 @@ with tab1:
                              hovertemplate="%{x}<br>Revenue: $%{y:,.0f}<extra></extra>"))
     fig.update_layout(xaxis=dict(title="Rentang Nilai Order"), yaxis=dict(title="Jumlah Transaksi"),
                       yaxis2=dict(title="Total Revenue (USD)", overlaying="y", side="right"))
-    st.plotly_chart(style_fig(fig, 330), width="stretch")
+    st.plotly_chart(style_fig(fig, 330), use_container_width=True)
 
-# ========================= TAB 2: GEOGRAFI & PRODUK ========================
 with tab2:
     geo = run(
         f"SELECT l.Negara, SUM(f.Gross_Rev) Revenue, COUNT(*) Transaksi {BASE}{WHERE} "
         f"AND l.Lokasi_SK <> -1 GROUP BY l.Negara ORDER BY Revenue DESC", P,
     )
-    st.markdown("##### 🗺️ Sebaran Revenue per Negara")
+    st.markdown("##### Sebaran Revenue per Negara")
     fig = px.choropleth(
         geo, locations="Negara", locationmode="country names", color="Revenue",
         color_continuous_scale="Teal", hover_name="Negara",
@@ -302,16 +354,16 @@ with tab2:
     fig.update_traces(hovertemplate="<b>%{hovertext}</b><br>Revenue: $%{z:,.0f}<br>"
                       "Transaksi: %{customdata[2]:,}<extra></extra>")
     fig.update_geos(showframe=False, showcoastlines=False, projection_type="natural earth")
-    st.plotly_chart(style_fig(fig, 400).update_layout(margin=dict(t=10, b=0, l=0, r=0)), width="stretch")
+    st.plotly_chart(style_fig(fig, 400).update_layout(margin=dict(t=10, b=0, l=0, r=0)), use_container_width=True)
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("##### 🌍 15 Negara dengan Revenue Tertinggi")
+        st.markdown("##### 15 Negara dengan Revenue Tertinggi")
         g15 = geo.head(15)
         fig = px.bar(g15.sort_values("Revenue"), x="Revenue", y="Negara", orientation="h",
                      color="Revenue", color_continuous_scale="Teal", labels=LABELS)
         fig.update_traces(hovertemplate="<b>%{y}</b><br>Revenue: $%{x:,.0f}<extra></extra>")
-        st.plotly_chart(style_fig(fig, 430).update_layout(coloraxis_showscale=False), width="stretch")
+        st.plotly_chart(style_fig(fig, 430).update_layout(coloraxis_showscale=False), use_container_width=True)
     with col2:
         st.markdown("##### 🎤 15 Artis dengan Pendapatan Bersih Tertinggi")
         artis = run(
@@ -322,9 +374,9 @@ with tab2:
         fig = px.bar(artis.sort_values("Pendapatan"), x="Pendapatan", y="Nama_Artis", orientation="h",
                      color="Pendapatan", color_continuous_scale="Oranges", labels=LABELS)
         fig.update_traces(hovertemplate="<b>%{y}</b><br>Pendapatan bersih: $%{x:,.0f}<extra></extra>")
-        st.plotly_chart(style_fig(fig, 430).update_layout(coloraxis_showscale=False), width="stretch")
+        st.plotly_chart(style_fig(fig, 430).update_layout(coloraxis_showscale=False), use_container_width=True)
 
-    st.markdown("##### 🏆 10 Produk dengan Revenue Tertinggi")
+    st.markdown("##### 10 Produk dengan Revenue Tertinggi")
     prod = run(
         f"SELECT i.Nama_Item, i.Tipe_Item, COUNT(*) Terjual, SUM(f.Gross_Rev) Revenue "
         f"{BASE}{WHERE} AND i.Item_SK<>-1 GROUP BY i.Item_SK ORDER BY Revenue DESC LIMIT 10", P,
@@ -334,13 +386,12 @@ with tab2:
                  color="Tipe_Item", color_discrete_sequence=SEQ, hover_data={"Terjual": ":,"}, labels=LABELS)
     fig.update_traces(hovertemplate="<b>%{y}</b><br>Revenue: $%{x:,.0f}<br>"
                       "Unit terjual: %{customdata[0]:,}<extra>%{fullData.name}</extra>")
-    st.plotly_chart(style_fig(fig, 400), width="stretch")
+    st.plotly_chart(style_fig(fig, 400), use_container_width=True)
 
-# ========================= TAB 3: WAKTU & PERILAKU =========================
 with tab3:
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("##### 📅 Bandcamp Friday vs Hari Biasa (rata-rata/hari)")
+        st.markdown("##### Bandcamp Friday vs Hari Biasa (rata-rata/hari)")
         bcf = run(
             f"SELECT CASE w.Bandcamp_Friday WHEN 1 THEN 'Bandcamp Friday' ELSE 'Hari Biasa' END Kategori, "
             f"SUM(f.Gross_Rev)/COUNT(DISTINCT w.Tanggal) Rev_per_Hari {BASE}{WHERE} "
@@ -350,9 +401,9 @@ with tab3:
                      color_discrete_sequence=[TEAL, CORAL], labels=LABELS)
         fig.update_traces(hovertemplate="<b>%{x}</b><br>Revenue per hari: $%{y:,.0f}<extra></extra>")
         st.plotly_chart(style_fig(fig, 350).update_layout(showlegend=False,
-                        xaxis_title=None, yaxis_title="Revenue per Hari (USD)"), width="stretch")
+                        xaxis_title=None, yaxis_title="Revenue per Hari (USD)"), use_container_width=True)
     with col2:
-        st.markdown("##### 📆 Hari Kerja vs Akhir Pekan (rata-rata per hari)")
+        st.markdown("##### Hari Kerja vs Akhir Pekan (rata-rata per hari)")
         we = run(
             f"SELECT CASE w.Is_Weekend WHEN 1 THEN 'Akhir Pekan' ELSE 'Hari Kerja' END Tipe_Hari, "
             f"SUM(f.Gross_Rev)/COUNT(DISTINCT w.Tanggal) Rev_per_Hari {BASE}{WHERE} "
@@ -362,9 +413,9 @@ with tab3:
                      color_discrete_sequence=["#5B8E7D", "#F4A259"], labels=LABELS)
         fig.update_traces(hovertemplate="<b>%{x}</b><br>Revenue per hari: $%{y:,.0f}<extra></extra>")
         st.plotly_chart(style_fig(fig, 350).update_layout(showlegend=False,
-                        xaxis_title=None, yaxis_title="Revenue per Hari (USD)"), width="stretch")
+                        xaxis_title=None, yaxis_title="Revenue per Hari (USD)"), use_container_width=True)
 
-    st.markdown("##### 💰 Persentase Revenue yang Diterima Artis per Hari")
+    st.markdown("##### Persentase Revenue yang Diterima Artis per Hari")
     tr = run(
         f"SELECT w.Tanggal, w.Hari, 100.0*SUM(f.Artist_Revenue)/SUM(f.Gross_Rev) Pct_ke_Artis "
         f"{BASE}{WHERE} GROUP BY w.Tanggal ORDER BY w.Tanggal", P,
@@ -374,13 +425,12 @@ with tab3:
                  color_discrete_map={"Bandcamp Friday": CORAL, "Hari Biasa": TEAL}, labels=LABELS)
     fig.update_traces(hovertemplate="<b>%{x}</b><br>%{y:.1f}% revenue ke artis<extra>%{fullData.name}</extra>")
     fig.update_yaxes(range=[80, 101], title="Persen ke Artis (%)")
-    st.plotly_chart(style_fig(fig, 330), width="stretch")
+    st.plotly_chart(style_fig(fig, 330), use_container_width=True)
     st.caption("Saat Bandcamp Friday, biaya platform 0% sehingga 100% revenue mengalir ke artis "
                "(terlihat sebagai lonjakan).")
 
-# ======================= TAB 4: SEGMEN (SINTETIS) ==========================
 with tab4:
-    st.info("⚠️ Data **Fan Status** & **User** bersifat *sintetis* (di-generate, bukan dari sumber Bandcamp). "
+    st.info("Data **Fan Status** & **User** bersifat *sintetis* (di-generate, bukan dari sumber Bandcamp). "
             "Tab ini mendemonstrasikan metodologi dimensi pelanggan, bukan insight bisnis nyata.")
     fan = run(
         f"SELECT p.Fan_Status, i.Tipe_Item, SUM(f.Gross_Rev) Belanja, "
@@ -395,7 +445,7 @@ with tab4:
                      color_discrete_sequence=SEQ, labels=LABELS)
         fig.update_traces(hovertemplate="<b>%{x}</b> · %{fullData.name}<br>"
                           "Total belanja: $%{y:,.0f}<extra></extra>")
-        st.plotly_chart(style_fig(fig, 380).update_layout(xaxis_title=None), width="stretch")
+        st.plotly_chart(style_fig(fig, 380).update_layout(xaxis_title=None), use_container_width=True)
     with col2:
         st.markdown("##### Rata-rata Belanja per Fan")
         avg = run(
@@ -406,11 +456,10 @@ with tab4:
         fig = px.bar(avg, x="Fan_Status", y="Avg_per_Fan", color="Fan_Status", text_auto=".2s",
                      color_discrete_sequence=[TEAL, CORAL], labels=LABELS)
         fig.update_traces(hovertemplate="<b>%{x}</b><br>Rata-rata per fan: $%{y:,.0f}<extra></extra>")
-        st.plotly_chart(style_fig(fig, 380).update_layout(showlegend=False, xaxis_title=None), width="stretch")
+        st.plotly_chart(style_fig(fig, 380).update_layout(showlegend=False, xaxis_title=None), use_container_width=True)
 
-# ============================== TAB 5: DATA ================================
 with tab5:
-    st.markdown("##### 🗂️ Revenue per Tipe Produk untuk 10 Negara Teratas")
+    st.markdown("##### Revenue per Tipe Produk untuk 10 Negara Teratas")
     pivot = run(
         f"SELECT l.Negara, i.Tipe_Item, SUM(f.Gross_Rev) Revenue {BASE}{WHERE} "
         f"AND l.Lokasi_SK <> -1 AND i.Item_SK <> -1 GROUP BY l.Negara, i.Tipe_Item", P,
@@ -423,9 +472,9 @@ with tab5:
     pt.index.name = "Negara"
     pt.columns.name = None  # buang label 'Tipe_Item' di pojok tabel
     st.dataframe(pt.style.format("${:,.0f}").background_gradient(cmap="GnBu", axis=None),
-                 width="stretch")
+                 use_container_width=True)
 
-    st.markdown("##### ⬇️ Unduh Data Ringkasan")
+    st.markdown("##### Unduh Data Ringkasan")
     summary = run(
         f"SELECT w.Tanggal AS Tanggal, w.Hari AS Hari, l.Negara AS Negara, "
         f"i.Tipe_Item AS 'Tipe Produk', COUNT(*) AS 'Jumlah Transaksi', "
@@ -434,7 +483,4 @@ with tab5:
     )
     st.download_button("Unduh CSV (agregat sesuai filter)", summary.to_csv(index=False).encode("utf-8"),
                        "ringkasan_terfilter.csv", "text/csv")
-    st.dataframe(summary.head(200), width="stretch", height=320)
-
-st.caption("Star Schema (Kimball) · Fact Sales + 5 dimensi · SQLite + Streamlit + Plotly · "
-           "Baris penanda 'Unknown' dikecualikan dari tampilan.")
+    st.dataframe(summary.head(200), use_container_width=True, height=320)

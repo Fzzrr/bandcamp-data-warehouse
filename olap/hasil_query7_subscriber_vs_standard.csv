@@ -1,11 +1,9 @@
 Fan_Status,Tipe_Item,Jumlah_Unik_Fans,Total_Transaksi,Total_Belanja,Avg_Spend_Per_Fan
-Standard,Digital Album,403,387522,2742020.93,6804.02
-Standard,Digital Track,403,220850,556223.06,1380.21
-Standard,Other,403,9368,218348.46,541.81
-Standard,Physical / Merch,403,190220,3701457.36,9184.76
-Standard,Unknown,17,17,64.07,3.77
-Subscriber,Digital Album,96,92118,649106.01,6761.52
-Subscriber,Digital Track,96,52618,131136.75,1366.01
-Subscriber,Other,96,2216,52758.06,549.56
-Subscriber,Physical / Merch,96,45056,880085.28,9167.56
-Subscriber,Unknown,5,5,22.07,4.41
+Standard,Digital Album,218,343,2464.06,11.3
+Standard,Digital Track,189,260,574.83,3.04
+Standard,Other,13,13,319.29,24.56
+Standard,Physical / Merch,164,206,4519.22,27.56
+Subscriber,Digital Album,58,75,726.36,12.52
+Subscriber,Digital Track,45,57,115.37,2.56
+Subscriber,Other,1,1,14.4,14.4
+Subscriber,Physical / Merch,37,45,930.94,25.16

@@ -15,6 +15,7 @@ Dataset: ~1 juta transaksi penjualan Bandcamp (September–Oktober 2020).
 - **Date dimension** penuh (rentang tanggal kontigu) + atribut kalender (hari, kuartal, akhir pekan, Bandcamp Friday).
 - **7 query OLAP** untuk menjawab pertanyaan bisnis (revenue bulanan, Bandcamp Friday, top artis, dll).
 - **Dashboard interaktif** dengan filter (negara, tipe produk, tanggal), KPI, peta dunia, dan grafik dinamis.
+- **Tab "Bayar Sesukanya"** — analisis *pay-what-you-want*: tingkat kelebihan bayar per tipe produk, item gratis vs berbayar, dan **kurva konsentrasi pendapatan artis** (long-tail).
 
 ---
 
@@ -97,7 +98,9 @@ Buka di browser: **http://localhost:8501**
 | 2 | **Bandcamp Friday** (2 Okt) menggratiskan biaya → 100% ke artis | $1,36 jt dalam 1 hari = **4,1× hari biasa** |
 | 3 | Pasar sangat terkonsentrasi | AS 44% + UK 14% + Jerman 8% = **~66% revenue** |
 | 4 | Pola **bayar sesukanya** (*pay-what-you-want*) | 25% order < $2, tapi order besar menyetir ~72% revenue |
-| 5 | Ekonomi **long-tail** artis | Top 1% artis = **42,5%** total revenue |
+| 5 | Ekonomi **long-tail** artis | Top 1% artis = **43%** total revenue (Top 5% = 67%) |
+| 6 | **Generositas fan** — bayar di atas harga minimum | 36% order bayar lebih → **$1,28 jt** ekstra (**14%** dari gross) |
+| 7 | Item **gratis (name-your-price)** tetap dibayar | 11,5% transaksi ber-harga $0, fan tetap bayar **~$400 rb** sukarela |
 
 ---
 

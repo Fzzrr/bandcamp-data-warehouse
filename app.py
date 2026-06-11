@@ -36,6 +36,10 @@ LABELS = {
     "Warna": "Kategori Hari",
     "Tanggal": "Tanggal",
     "Terjual": "Unit Terjual",
+    "Pct_Overpay": "Order Bayar Lebih (%)",
+    "Avg_Tip": "Rata-rata Kelebihan Bayar (USD)",
+    "Pct_Artis_Kumulatif": "Kumulatif Artis (%)",
+    "Pct_Rev_Kumulatif": "Kumulatif Revenue (%)",
 }
 
 CSS = """
@@ -44,11 +48,20 @@ CSS = """
     /* Hero header */
     .hero {
         background: linear-gradient(110deg, #11999E 0%, #16323A 100%);
-        padding: 1.4rem 1.8rem; border-radius: 16px; color: #fff; margin-bottom: 1.2rem;
+        padding: 1.5rem 1.9rem; border-radius: 16px; color: #fff; margin-bottom: 1.2rem;
         box-shadow: 0 6px 20px rgba(17,153,158,.25);
     }
     .hero h1 {margin: 0; font-size: 1.7rem; font-weight: 800; letter-spacing:-.5px;}
-    .hero p  {margin: .25rem 0 0; opacity: .85; font-size: .9rem;}
+    .hero .meta {
+        display: flex; flex-wrap: wrap; gap: 8px; margin-top: .85rem;
+    }
+    .hero .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.18);
+        padding: 4px 12px; border-radius: 999px; font-size: .8rem; font-weight: 600;
+        color: #EAF7F7; backdrop-filter: blur(2px);
+    }
+    .hero .chip b {color: #fff; font-weight: 700;}
     /* KPI cards */
     .kpi-grid {display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: .4rem;}
     .kpi {
@@ -180,7 +193,12 @@ WHERE, P = build_where(sel_countries, sel_types, date_lo, date_hi)
 st.markdown(
     f"""<div class="hero">
         <h1>Bandcamp Sales — Data Warehouse Dashboard</h1>
-        <p>Star Schema · 1 tabel fakta + 5 dimensi · rentang data {lo} → {hi}</p>
+        <div class="meta">
+            <span class="chip">⭐ Star Schema</span>
+            <span class="chip">📦 <b>1</b> tabel fakta</span>
+            <span class="chip">🧩 <b>5</b> dimensi</span>
+            <span class="chip">📅 {lo} → {hi}</span>
+        </div>
     </div>""",
     unsafe_allow_html=True,
 )
@@ -254,14 +272,17 @@ else:
 
 st.markdown("---")
 
-
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["Ringkasan", "Geografi & Produk", "Waktu & Perilaku", "Segmen Pelanggan", "Data"])
+# ----------------------------------------------------------------------------
+# TABS
+# ----------------------------------------------------------------------------
+tab1, tab2, tab3, tab_pwyw, tab4, tab5 = st.tabs(
+    ["Ringkasan", "Geografi & Produk", "Waktu & Perilaku",
+     "Bayar Sesukanya", "Segmen Pelanggan", "Data"])
 
 with tab1:
     st.markdown(
-        f"""<div class="insight"><b>{phys['pct_rev'].iloc[0]:.0f}%</b> revenue datang dari
-        <b>produk fisik / merch</b>, padahal hanya <b>{phys['pct_tx'].iloc[0]:.0f}%</b> dari jumlah transaksi —
+        f"""<div class="insight"><b>{phys_pct_rev:.0f}%</b> revenue datang dari
+        <b>produk fisik / merch</b>, padahal hanya <b>{phys_pct_tx:.0f}%</b> dari jumlah transaksi —
         merch punya nilai order ~2,7× lebih tinggi dari album digital.</div>
         <div class="insight">Hari <b>Jumat</b> menghasilkan rata-rata <b>{fri_mult:.1f}×</b> revenue/hari
         dibanding hari lain — efek <b>Bandcamp Friday</b> (biaya platform 0%).</div>
@@ -403,6 +424,116 @@ with tab3:
     st.caption("Saat Bandcamp Friday, biaya platform 0% sehingga 100% revenue mengalir ke artis "
                "(terlihat sebagai lonjakan).")
 
+# ===================== TAB PWYW: BAYAR SESUKANYA ===========================
+with tab_pwyw:
+    # --- Ringkasan kuantitatif perilaku pay-what-you-want (data NYATA) ---
+    pwyw = run(
+        f"""SELECT
+            SUM(CASE WHEN f.Gross_Rev > i.Harga_Satuan_USD*f.Quantity + 0.01 THEN 1 ELSE 0 END) AS overpaid,
+            SUM(CASE WHEN i.Harga_Satuan_USD <= 0.001 THEN 1 ELSE 0 END) AS free_priced,
+            SUM(MAX(f.Gross_Rev - i.Harga_Satuan_USD*f.Quantity, 0)) AS tips,
+            SUM(CASE WHEN i.Harga_Satuan_USD <= 0.001 THEN f.Gross_Rev ELSE 0 END) AS free_rev,
+            COUNT(*) AS total, SUM(f.Gross_Rev) AS gross
+        {BASE}{WHERE} AND i.Item_SK <> -1""", P,
+    ).iloc[0]
+
+    pct_overpaid = 100 * pwyw["overpaid"] / pwyw["total"] if pwyw["total"] else 0
+    pct_tips = 100 * pwyw["tips"] / pwyw["gross"] if pwyw["gross"] else 0
+    pct_free = 100 * pwyw["free_priced"] / pwyw["total"] if pwyw["total"] else 0
+
+    st.markdown(
+        f"""<div class="insight">💝 Model <b>"bayar sesukanya"</b> Bandcamp nyata terlihat:
+        <b>{pct_overpaid:.0f}%</b> order membayar <b>di atas harga minimum</b>, menyumbang
+        <b>{fmt_usd(pwyw['tips'])}</b> ekstra (<b>{pct_tips:.1f}%</b> dari gross revenue) sebagai bentuk dukungan langsung ke artis.</div>
+        <div class="insight">🎁 <b>{pct_free:.0f}%</b> transaksi adalah item ber-harga <b>$0 (name-your-price)</b>,
+        namun penggemar tetap membayar <b>{fmt_usd(pwyw['free_rev'])}</b> secara sukarela — bukti loyalitas basis fan.</div>""",
+        unsafe_allow_html=True,
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("##### 💸 Kelebihan Bayar (Tip) per Tipe Produk")
+        tiptype = run(
+            f"""SELECT i.Tipe_Item,
+                100.0*SUM(CASE WHEN f.Gross_Rev > i.Harga_Satuan_USD*f.Quantity + 0.01 THEN 1 ELSE 0 END)/COUNT(*) AS Pct_Overpay,
+                AVG(f.Gross_Rev - i.Harga_Satuan_USD*f.Quantity) AS Avg_Tip
+            {BASE}{WHERE} AND i.Item_SK <> -1 AND i.Harga_Satuan_USD > 0.001
+            GROUP BY i.Tipe_Item ORDER BY Pct_Overpay DESC""", P,
+        )
+        fig = go.Figure()
+        fig.add_bar(x=tiptype["Tipe_Item"], y=tiptype["Pct_Overpay"], name="Order Bayar Lebih (%)",
+                    marker_color=TEAL, yaxis="y",
+                    hovertemplate="<b>%{x}</b><br>%{y:.1f}% order membayar lebih<extra></extra>")
+        fig.add_trace(go.Scatter(x=tiptype["Tipe_Item"], y=tiptype["Avg_Tip"], name="Rata-rata Kelebihan (USD)",
+                                 mode="lines+markers", marker_color=CORAL, yaxis="y2",
+                                 hovertemplate="<b>%{x}</b><br>Rata-rata tip: $%{y:.2f}<extra></extra>"))
+        fig.update_layout(yaxis=dict(title="Order Bayar Lebih (%)"),
+                          yaxis2=dict(title="Rata-rata Kelebihan (USD)", overlaying="y", side="right"))
+        st.plotly_chart(style_fig(fig, 360).update_layout(xaxis_title=None), width="stretch")
+
+    with col2:
+        st.markdown("##### 🎁 Item Gratis (Name-Your-Price) vs Berbayar")
+        freecmp = run(
+            f"""SELECT CASE WHEN i.Harga_Satuan_USD <= 0.001 THEN 'Gratis (name-your-price)' ELSE 'Berbayar' END AS Kategori,
+                COUNT(*) AS Transaksi, SUM(f.Gross_Rev) AS Revenue
+            {BASE}{WHERE} AND i.Item_SK <> -1 GROUP BY 1""", P,
+        )
+        fig = px.bar(freecmp, x="Kategori", y="Transaksi", color="Kategori",
+                     color_discrete_sequence=[CORAL, TEAL], text_auto=".2s",
+                     hover_data={"Revenue": ":$,.0f"}, labels=LABELS)
+        fig.update_traces(hovertemplate="<b>%{x}</b><br>Transaksi: %{y:,}<br>"
+                          "Revenue: $%{customdata[0]:,.0f}<extra></extra>")
+        st.plotly_chart(style_fig(fig, 360).update_layout(showlegend=False, xaxis_title=None,
+                        yaxis_title="Jumlah Transaksi"), width="stretch")
+        st.caption("Penggemar membayar sukarela bahkan untuk item yang harga minimumnya $0 — "
+                   "inti dari filosofi *fan-funded* Bandcamp.")
+
+    # --- Kurva konsentrasi (Pareto / long-tail) pendapatan artis ---
+    st.markdown("##### 📉 Konsentrasi Pendapatan Artis — Ekonomi *Long-Tail*")
+    art = run(
+        f"SELECT a.Artis_SK, SUM(f.Artist_Revenue) rev {BASE} "
+        f"JOIN Dim_Artis a ON f.Artis_SK=a.Artis_SK {WHERE} AND a.Artis_SK <> -1 "
+        f"GROUP BY a.Artis_SK HAVING rev > 0 ORDER BY rev DESC", P,
+    )
+    if len(art) > 5:
+        rev = art["rev"].to_numpy()
+        cum_rev = 100 * rev.cumsum() / rev.sum()
+        cum_art = 100 * (pd.Series(range(1, len(rev) + 1)) / len(rev))
+        # downsample agar plot ringan namun mulus
+        idx = pd.Series(range(len(rev)))
+        step = max(1, len(rev) // 400)
+        keep = sorted(set(list(idx[::step]) + [len(rev) - 1]))
+        curve = pd.DataFrame({
+            "Pct_Artis_Kumulatif": cum_art.iloc[keep].values,
+            "Pct_Rev_Kumulatif": cum_rev[keep],
+        })
+        # angka penanda untuk callout
+        def top_share(p):
+            k = max(1, int(len(rev) * p))
+            return 100 * rev[:k].sum() / rev.sum()
+        top1, top5, top20 = top_share(0.01), top_share(0.05), top_share(0.20)
+
+        fig = px.area(curve, x="Pct_Artis_Kumulatif", y="Pct_Rev_Kumulatif", labels=LABELS,
+                      color_discrete_sequence=[TEAL])
+        fig.update_traces(hovertemplate="Top %{x:.0f}% artis<br>= %{y:.1f}% revenue<extra></extra>")
+        # garis pemerataan sempurna (referensi)
+        fig.add_trace(go.Scatter(x=[0, 100], y=[0, 100], mode="lines", name="Pemerataan Sempurna",
+                                 line=dict(color="#B0C4C9", dash="dash"),
+                                 hovertemplate="Pemerataan sempurna<extra></extra>"))
+        fig.update_xaxes(title="Kumulatif Artis (%) — diurutkan dari pendapatan tertinggi", range=[0, 100])
+        fig.update_yaxes(title="Kumulatif Revenue (%)", range=[0, 101])
+        st.plotly_chart(style_fig(fig, 360), width="stretch")
+        st.markdown(
+            f"""<div class="insight">📊 <b>Top 1%</b> artis menguasai <b>{top1:.0f}%</b> revenue ·
+            <b>Top 5%</b> = <b>{top5:.0f}%</b> · <b>Top 20%</b> = <b>{top20:.0f}%</b>.
+            Kurva yang jauh dari garis putus-putus menunjukkan distribusi pendapatan sangat
+            <b>terkonsentrasi</b> di sedikit artis papan atas (ekonomi long-tail).</div>""",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info("Data artis tidak cukup untuk membangun kurva konsentrasi pada filter ini.")
+
+# ======================= TAB 4: SEGMEN (SINTETIS) ==========================
 with tab4:
     st.info("Data **Fan Status** & **User** bersifat *sintetis* (di-generate, bukan dari sumber Bandcamp). "
             "Tab ini mendemonstrasikan metodologi dimensi pelanggan, bukan insight bisnis nyata.")

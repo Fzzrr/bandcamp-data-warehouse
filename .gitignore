@@ -10,6 +10,5 @@ venv/
 env/
 .env
 
-# Artefak hasil generate (dibuat ulang oleh main_pipeline.ipynb)
-database/*.db
+# File .db besar di-track via Git LFS (lihat .gitattributes), bukan di-ignore
 etl/
